@@ -1,0 +1,41 @@
+# Regra de previsao congelada. Carimbada no genesis antes de existir a primeira
+# previsao. Alterar qualquer valor aqui encerra a temporada e abre outra, com
+# placar reiniciado e o anterior preservado — ver docs/DECISOES.md.
+#
+# Os coeficientes foram definidos A PRIORI, sem nenhum ajuste a dados
+# historicos. A regra e intencionalmente ingenua: o papel dela e (a) comecar a
+# acumular amostra desde a semana 4 e (b) ser o grupo de controle permanente
+# contra o qual os agentes de LLM do marco M7 serao medidos.
+
+version: momentum-1.0.0
+frozen_at_utc: "2026-07-30T00:00:00Z"
+
+claim: outperform_qqq
+horizon_sessions: 5
+universe_top_n: 25
+
+lookbacks:
+  rel_20: 20
+  rel_60: 60
+
+weights:
+  rel_20: "0.60"
+  rel_60: "0.40"
+
+mapping:
+  method: cross_sectional_percentile
+  p_min: "0.42"
+  p_max: "0.58"
+
+notes: >
+  p_up = p_min + (p_max - p_min) * percentil_transversal(score), onde
+  score = 0.60 * forca_relativa_20d + 0.40 * forca_relativa_60d contra o QQQ,
+  e forca_relativa_N = (fech_t / fech_t-N) / (qqq_t / qqq_t-N) - 1.
+
+  A faixa [0.42, 0.58] e deliberadamente estreita: uma regra de momentum
+  transversal sem ajuste nao tem informacao que justifique confianca maior, e
+  declarar probabilidade extrema seria descalibracao por construcao.
+
+  Nesta versao da regra, p_up e IDENTICO entre as tres personas. A
+  diferenciacao por filosofia entra no marco M7, com pre-filtro de candidatos e
+  assimetria de informacao. Ate la, a grade mede a regra, nao as personas.

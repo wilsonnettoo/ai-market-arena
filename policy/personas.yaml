@@ -1,0 +1,66 @@
+# Politica de risco das tres personas. Carimbada no genesis.
+#
+# ESTE ARQUIVO CONTEM APENAS IDENTIFICADOR TECNICO E LIMITE DE RISCO.
+# O nome editorial de cada persona NAO mora aqui, de proposito: nome e questao
+# de apresentacao, nao de politica de risco, e misturar os dois faria uma
+# decisao editorial pendente (docs/DECISOES.md D10) bloquear o carimbo do
+# genesis. O identificador tecnico e estavel e nao muda com a decisao editorial.
+#
+# Alterar qualquer limite aqui durante uma temporada encerra a temporada e abre
+# outra, com placar reiniciado e o anterior preservado.
+
+version: personas-1.0.0
+frozen_at_utc: "2026-07-30T00:00:00Z"
+
+personas:
+  agressivo:
+    horizonte_pregoes: [1, 10]
+    risco_max_por_operacao_pct: "1.00"
+    posicao_max_pct: "8.00"
+    posicoes_simultaneas_max: 5
+    perda_max_diaria_pct: "2.00"
+    perda_max_semanal_pct: "5.00"
+    caixa_min_pct: "0.00"
+    etfs_permitidos: false
+    alavancagem: false
+    venda_a_descoberto: false
+    opcoes: false
+
+  equilibrista:
+    horizonte_pregoes: [10, 126]
+    risco_max_por_operacao_pct: "0.75"
+    posicao_max_pct: "8.00"
+    posicoes_simultaneas_max: 10
+    perda_max_diaria_pct: "2.00"
+    perda_max_semanal_pct: "5.00"
+    caixa_min_pct: "15.00"
+    etfs_permitidos: false
+    alavancagem: false
+    venda_a_descoberto: false
+    opcoes: false
+
+  guardiao:
+    horizonte_pregoes: [126, 1260]
+    risco_max_por_operacao_pct: "0.50"
+    posicao_max_pct: "5.00"
+    posicoes_simultaneas_max: 20
+    perda_max_diaria_pct: "2.00"
+    perda_max_semanal_pct: "5.00"
+    caixa_min_pct: "0.00"
+    etfs_permitidos: true
+    alavancagem: false
+    venda_a_descoberto: false
+    opcoes: false
+
+# ALERTA REGISTRADO NO PROPRIO ARQUIVO, porque quem ler os limites precisa ler
+# isto junto: o teto de posicao vezes o numero de posicoes simultaneas produz
+# niveis de investimento MUITO diferentes entre as personas — agressivo fica no
+# maximo 40% investido (5 x 8%), equilibrista tem 15% de caixa minimo, e o
+# guardiao pode ficar 100% investido e pode comprar ETFs, ou seja, pode comprar
+# o proprio benchmark.
+#
+# Isso significa que a dispersao de retorno entre as tres pode ser explicada
+# pelo NIVEL DE CAIXA e nao pela filosofia. O marco M1 (gate de dispersao) mede
+# exatamente isso, com o critério escrito antes de rodar: se mais de 80% da
+# dispersao vier do caixa, estes limites sao redesenhados antes de qualquer
+# codigo de producao.

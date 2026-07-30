@@ -1,0 +1,21 @@
+# Zona restrita: exige revisao do dono no PR.
+#
+# CODEOWNERS sozinho nao basta — ele so age no PR, tarde demais para impedir que
+# um assistente "conserte de passagem" o arquivo de outro. O hook de pre-commit
+# que le ARENA_AGENT age antes. Os dois juntos.
+
+/arena/canonical.py       @wilsonnettoo
+/arena/contracts/         @wilsonnettoo
+/arena/audit/             @wilsonnettoo
+/arena/cycle.py           @wilsonnettoo
+/arena/forecast/          @wilsonnettoo
+/arena/risk/              @wilsonnettoo
+/arena/metrics/           @wilsonnettoo
+/policy/                  @wilsonnettoo
+/.github/                 @wilsonnettoo
+/pyproject.toml           @wilsonnettoo
+/uv.lock                  @wilsonnettoo
+/MANIFESTO.md             @wilsonnettoo
+/AGENTS.md                @wilsonnettoo
+/docs/FILL_SPEC.md        @wilsonnettoo
+/docs/DECISOES.md         @wilsonnettoo

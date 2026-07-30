@@ -281,6 +281,38 @@ minutos após o fechamento ou precisa esperar mais.
 
 ---
 
+### D19 — `strict=False` no campo `persona`, e só nele
+**Data:** 2026-07-30 · **Status:** Decidida
+
+**Contexto.** O invariante I5 exige `strict=True` em todo contrato: rejeição, nunca
+coerção. Mas um teste de round-trip revelou que, com `strict` global, pydantic recusa a
+string `"agressivo"` de volta para o membro de `Persona` — mesmo sendo `StrEnum`. A
+consequência é grave e não óbvia: **o registro publicado deixa de ser legível pelo sistema
+que o produziu.** O resolvedor de horizonte e o painel leem os JSON de `data/forecasts/`, e
+os dois quebrariam.
+
+Três alternativas foram testadas antes de decidir:
+
+| Opção | Round-trip | Rejeita inválido | Custo |
+|---|---|---|---|
+| `Literal["agressivo", ...]` | funciona | sim | Perde iteração sobre as personas, `.value` e autocomplete |
+| `Annotated[Persona, Field(strict=False)]` | funciona, devolve o membro real | sim | Uma exceção documentada, num campo |
+| `use_enum_values=True` | funciona | sim | O campo passa a ser `str`; `r.persona is Persona.AGRESSIVO` fica falso |
+
+**Decisão.** `Annotated[Persona, Field(strict=False)]`, aplicado **exclusivamente** ao
+campo `persona` de `ForecastRecord`.
+
+**Consequência.** Aceitar exatamente um dos três valores declarados no enum não é coerção
+no sentido que I5 proíbe: valor fora do enum continua sendo rejeitado, e `strict` segue
+valendo em todos os outros campos — confirmado por teste de que float em `p_up` ainda é
+recusado. Qualquer outro campo que precise dessa exceção no futuro exige nova entrada aqui;
+a exceção não é precedente geral.
+
+O teste `test_round_trip_json_valida_de_volta_em_strict` fica como guarda permanente. Ele
+não estava no plano original e é o que expôs o defeito.
+
+---
+
 ### D18 — Ambiente real: Python 3.14.3 e pandas 3.0.5
 **Data:** 2026-07-30 · **Status:** Decidida
 

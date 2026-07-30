@@ -281,6 +281,43 @@ minutos após o fechamento ou precisa esperar mais.
 
 ---
 
+### D20 — A métrica do gate de dispersão é concordância de ranking, não R²
+**Data:** 2026-07-30 · **Status:** Decidida
+
+**Contexto.** O plano especificava que o gate de dispersão reprovaria se mais de 80% da
+**variância** dos retornos fosse explicada pelo nível investido, medido por R² de uma
+regressão do retorno final contra a exposição. Medido empiricamente antes de rodar com dados
+reais, esse R² se revelou **quase vazio**:
+
+| Cenário | R² |
+|---|---:|
+| Volatilidade escala com o nível, ruído baixo | 0,079 |
+| Volatilidade escala com o nível, ruído médio | 0,068 |
+| Volatilidade idêntica, só o retorno médio escala | 0,040 |
+| Perfeitamente determinístico (só o nível importa) | 0,9999 |
+
+O R² só passa de 0,80 no caso determinístico. Em qualquer cenário realista fica entre 0,02 e
+0,08, **e o gate aprovaria sempre** — o que é pior que não ter gate, porque dá falsa garantia.
+
+A causa: o R² mede quanto o nível explica da variância **total**, e a variância **dentro** de
+cada persona — qual sorteio de ações deu certo — domina o cálculo.
+
+**Decisão.** A métrica passa a ser a **concordância de ranking**: em que fração das corridas
+pareadas o ranking das três personas coincide com a ordem de exposição, ou com o exato
+inverso dela. O inverso conta igual, porque também significa que o placar foi decidido pela
+exposição, apenas num mercado de baixa. Limiar de reprovação: **80%**. Esperado sob puro
+acaso: 2/3! = **33,3%**.
+
+As corridas são **pareadas** — a corrida *i* usa a mesma semente nas três personas, como na
+competição real, em que as três veem os mesmos pregões.
+
+**Consequência.** O gate passou a ser informativo. Resultado com dados reais de 2024-07 a
+2026-07, 2000 corridas: concordância de **61,3%**, aprovado. Um teste de regressão
+(`test_metrica_antiga_por_r2_seria_vazia`) fixa o fato de que o R² não detectaria o que a
+concordância detecta, para impedir volta silenciosa à métrica antiga.
+
+---
+
 ### D19 — `strict=False` no campo `persona`, e só nele
 **Data:** 2026-07-30 · **Status:** Decidida
 

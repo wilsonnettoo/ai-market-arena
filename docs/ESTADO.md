@@ -8,13 +8,16 @@ em que estamos. Os três juntos bastam; não é necessário reler o plano mestre
 
 ## 1. Situação em uma frase
 
-**O M0 está completo do lado do código: Tasks 1 a 6 de 7 feitas, 42 testes passando.**
-Existem o núcleo criptográfico, os contratos congelados, a cadeia de hash com verificador
-independente, e todos os documentos de pré-registro (manifesto, FILL_SPEC datado, políticas
-congeladas, AGENTS.md).
+**O M0 ESTÁ COMPLETO. Tasks 1 a 7, 42 testes passando.**
 
-**Falta apenas a Task 7 — e ela está deliberadamente parada aguardando decisão do Wilson**,
-porque é o passo que torna tudo público e irreversível. Ver seção 3.
+O repositório é público em **https://github.com/wilsonnettoo/ai-market-arena**, com a entrada
+gênese carimbada no OpenTimestamps e histórico protegido contra reescrita — verificado por
+tentativa real de force-push, recusada mesmo com privilégio de administrador.
+
+A prova de anterioridade **existe**. As regras do experimento estão carimbadas antes de
+existir qualquer resultado.
+
+**Próximo marco: M1 (gate de dispersão), Tasks 8 e 9.**
 
 ---
 
@@ -73,85 +76,63 @@ e restauram em `finally`. Se uma execução for interrompida (Ctrl-C, crash), ro
 
 ---
 
-## 3. O que falta — M0: só a Task 7, e ela está PARADA por decisão
+## 3. M0 — concluído
 
-Tasks 4, 5 e 6 concluídas. Detalhes do que foi feito e por quê estão nas mensagens de commit
-`2ecd57d`, `0610f71` e `a4687d3`.
+| Task | Entrega | Commit |
+|---|---|---|
+| 1 | Bootstrap do toolchain e as 5 skills | `e066172` |
+| 2 | Forma canônica e hash, paridade JS provada | `bc1baf2` |
+| 3 | Contratos congelados v1.0.0 | `93b0fba` |
+| — | Gate de conformidade por introspecção | `8b0d944` |
+| 4 | Cadeia de hash append-only | `2ecd57d` |
+| 5 | Verificador independente via CLI | `0610f71` |
+| 6 | Manifesto, FILL_SPEC, políticas, AGENTS.md | `a4687d3` |
+| 7 | **Gênese carimbado e repositório público** | `485b5d1` |
 
-### Task 7 — Commit gênese, carimbo externo e publicação
+### Estado do gênese
 
-**Não executar sem o Wilson dizer para prosseguir.** Três motivos, e nenhum é técnico:
+- `entry_hash`: `3e47602d6cc77eff47c379a0fda66dabab392cdd45f38b9fc8cdf976c316ffd8`
+- `prev_hash`: 64 zeros
+- `created_at_utc`: `2026-07-30T12:06:54Z`
+- Cobre: `MANIFESTO.md`, `docs/FILL_SPEC.md`, `policy/personas.yaml`,
+  `policy/forecast_rule.yaml`, `AGENTS.md`
+- SHA-256 do `chain/CHAIN.jsonl` carimbado:
+  `27845ed0a18c50aeac373ecbef43bc3d3ddcdf5121dad7bdafbf9483ff1eae77`
+- Atestação submetida a 4 calendários; **pendente de agregação**
 
-1. **Publicar o repositório é irreversível na prática.** Conteúdo público é indexado e
-   copiado; despublicar depois não desfaz. É a categoria de ação que exige confirmação
-   explícita, mesmo com a D3 já tendo decidido que o repositório é público desde o dia 1.
+### Proteção verificada por teste, não por afirmação
 
-2. **O `MANIFESTO.md` é um compromisso público com implicação regulatória**, e a D13
-   (consulta a advogado de mercado de capitais) está pendente. Ele declara metodologia,
-   métrica e critério de fracasso — coisas que, uma vez carimbadas, não devem ser editadas.
-   O Wilson precisa lê-lo antes.
-
-3. **O carimbo do OpenTimestamps inicia o relógio da anterioridade.** Refazer o gênese depois
-   de carimbar é exatamente a reescrita de história que o projeto proíbe. Antes de qualquer
-   publicação não há dano, mas depois há — então a ordem correta é: Wilson lê, aprova, e só
-   então carimba.
-
-**Sequência quando autorizado:**
+Duas tentativas reais de reescrever história foram recusadas com
+`protected branch hook declined`, agindo como administrador:
 
 ```bash
-# 1. instalar o cliente (NAO esta instalado)
-uv tool install opentimestamps-client && ots --version
-
-# 2. entrada genesis — prev_hash deve sair com 64 zeros
-uv run python - <<'EOF'
-from datetime import datetime, timezone
-from pathlib import Path
-from arena.audit.chain import append_entry, build_entry, last_hash
-
-root = Path(".").resolve()
-chain = root / "chain" / "CHAIN.jsonl"
-alvos = [root / "MANIFESTO.md", root / "docs" / "FILL_SPEC.md",
-         root / "policy" / "personas.yaml", root / "policy" / "forecast_rule.yaml",
-         root / "AGENTS.md"]
-faltando = [str(x) for x in alvos if not x.exists()]
-assert not faltando, f"ausentes: {faltando}"
-agora = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-e = build_entry("genesis", agora, alvos, last_hash(chain), root)
-append_entry(chain, e)
-print("entry_hash:", e["entry_hash"]); print("prev_hash :", e["prev_hash"])
-EOF
-
-# 3. verificar ANTES de carimbar — carimbar cadeia quebrada carimba o defeito
-uv run python scripts/verify_chain.py     # espera: PASS: 1 entradas
-
-# 4. carimbar e commitar
-ots stamp chain/CHAIN.jsonl
-git add chain/ && git commit -m "feat: entrada genesis da cadeia, carimbada no OpenTimestamps"
-
-# 5. publicar
-gh repo create ai-market-arena --public --source=. --remote=origin --push
-
-# 6. proteger o historico (enforce_admins e o ponto: sem ele a prova vale zero)
-gh api -X PUT repos/wilsonnettoo/ai-market-arena/branches/main/protection --input - <<'EOF'
-{"required_status_checks":null,"enforce_admins":true,"required_pull_request_reviews":null,
- "restrictions":null,"allow_force_pushes":false,"allow_deletions":false,
- "required_linear_history":true}
-EOF
-gh api repos/wilsonnettoo/ai-market-arena/branches/main/protection \
-  --jq '{force:.allow_force_pushes.enabled,admins:.enforce_admins.enabled,linear:.required_linear_history.enabled}'
-# espera: {"force":false,"admins":true,"linear":true}
-
-# 7. assinatura de commits por SSH
-git config --local commit.gpgsign true
-git config --local gpg.format ssh
-git config --local user.signingkey ~/.ssh/id_ed25519.pub
-gh api -X POST user/ssh_signing_keys -f title="arena" -f key="$(cat ~/.ssh/id_ed25519.pub)"
+git push --force origin HEAD~1:main        # recusado
+git push --force origin <historia-alternativa>:main   # recusado
+git push origin --delete main              # recusado
 ```
 
-Usuário do GitHub confirmado: **`wilsonnettoo`**.
+Configuração confirmada: `enforce_admins: true`, `allow_force_pushes: false`,
+`allow_deletions: false`, `required_linear_history: true`.
 
-Alguns dias depois do carimbo, rodar `ots upgrade chain/CHAIN.jsonl.ots` e commitar — a
-atestação nasce pendente de agregação, e `ots verify` só confirma o bloco depois disso.
+### Duas pendências operacionais do M0
+
+1. **`ots upgrade` daqui a alguns dias.** A atestação nasce pendente de agregação e só
+   confirma o bloco do Bitcoin depois. Rodar e commitar:
+   ```bash
+   ots upgrade chain/CHAIN.jsonl.ots && git add chain/ && \
+     git commit -m "data: upgrade da atestacao OTS" && git push
+   ```
+
+2. **Registrar a chave de assinatura no GitHub — exige ação do Wilson.** A CLI não tem o
+   escopo necessário. Os commits **já são assinados** (chave em
+   `~/.ssh/id_ed25519_arena`, verificação local via `~/.ssh/allowed_signers`), mas o GitHub
+   só exibe "Verified" depois de:
+   ```bash
+   gh auth refresh -h github.com -s admin:ssh_signing_key
+   gh api -X POST user/ssh_signing_keys -f title="arena-signing" \
+     -f key="$(cat ~/.ssh/id_ed25519_arena.pub)"
+   ```
+   Considerar também ligar `required_signatures` na proteção da branch depois disso.
 
 ## 4. O que falta — M1 (Tasks 8 e 9)
 

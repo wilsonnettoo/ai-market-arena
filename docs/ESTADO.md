@@ -17,7 +17,9 @@ tentativa real de force-push, recusada mesmo com privilégio de administrador.
 A prova de anterioridade **existe**. As regras do experimento estão carimbadas antes de
 existir qualquer resultado.
 
-**Próximo marco: M1 (gate de dispersão), Tasks 8 e 9.**
+**O M1 também está concluído e o gate APROVOU** — com a métrica corrigida (D20).
+
+**Próximo marco: M2 (O Pulso), Tasks 10 a 19.** É onde a amostra começa a acumular.
 
 ---
 
@@ -134,19 +136,29 @@ Configuração confirmada: `enforce_admins: true`, `allow_force_pushes: false`,
    ```
    Considerar também ligar `required_signatures` na proteção da branch depois disso.
 
-## 4. O que falta — M1 (Tasks 8 e 9)
+## 4. M1 — concluído, gate APROVADO
 
-Gate de dispersão. `research/dispersion_gate.py` + relatório em `reports/dispersion-gate.md`.
+`research/dispersion_gate.py` + `reports/dispersion-gate.md`. Commit `6657f5f`.
 
-**Critério escrito antes de rodar:** se mais de 80% da dispersão entre as três carteiras
-aleatórias vier do nível de caixa obrigatório, o gate **reprova** e as personas são
-redesenhadas (igualar o caixa-alvo e diferenciar por horizonte e pool de candidatos) antes
-de qualquer código de produção. Exit 0 = aprovado, exit 2 = reprovado.
+**A métrica do plano estava quebrada e foi substituída (D20).** O plano usava R² do retorno
+final contra o nível investido. Esse R² só passa de 0,80 no caso perfeitamente
+determinístico; em cenário realista fica entre 0,02 e 0,08 — o gate aprovaria sempre, que é
+pior que não ter gate. Substituída por **concordância de ranking**: em que fração das
+corridas pareadas o ranking coincide com a ordem de exposição ou o exato inverso dela. Acaso
+= 33,3%; limiar de reprovação = 80%.
 
-Correção já aplicada ao plano por causa do pandas 3.x: usar
-`pd.DatetimeIndex(retornos.index).to_period("M")`, nunca `retornos.index.to_period("M")`.
+**Resultado (2024-07 a 2026-07, 2000 corridas pareadas): 61,3% — APROVADO.**
 
----
+Dois números que o veredito sozinho esconde:
+
+- Com **zero habilidade**, o guardião rende +44,3% e o agressivo +16,6% no período completo:
+  **27,7 pontos percentuais vindos só da exposição.**
+- Mas o efeito **acumula com o tempo**. Em janelas de seis meses — a duração de uma temporada
+  real — a concordância cai para 38-45%, perto do acaso, e o spread cai para 5-7 pontos.
+
+**Consequência prática:** as personas seguem como estão, e `policy/personas.yaml` não muda.
+Mas o painel precisa mostrar exposição ao lado do retorno, e temporadas longas mudariam o
+quadro — se uma temporada passar de seis meses, rodar o gate de novo antes de comparar.
 
 ## 5. O que falta — M2 (Tasks 10 a 19)
 

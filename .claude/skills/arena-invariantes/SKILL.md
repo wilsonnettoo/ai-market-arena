@@ -90,22 +90,26 @@ Arquivo sem `asof` AVISA: sem ele, papel que trocou de símbolo aparece sob o no
 ### 4. Modelo pydantic sem strict (I5)
 
 ```bash
-for f in $(grep -rl 'ConfigDict(' arena/contracts/ --include='*.py'); do
-  c=$(grep -c 'ConfigDict(' "$f")
-  s=$(grep -c 'strict=True' "$f")
-  e=$(grep -c 'extra="forbid"' "$f")
-  [ "$c" -ne "$s" ] || [ "$c" -ne "$e" ] && \
-    echo "$f: ConfigDict=$c strict=$s extra_forbid=$e -> BLOQUEIA"
-done
+uv run python scripts/check_contracts.py
 ```
 
-**Contagem, não ausência.** `grep -L` não serve aqui: ele lista arquivos que não contêm a
-string em lugar algum, então um arquivo com um modelo correto e um errado passa limpo.
-Comparar as contagens pega o modelo que ficou de fora. Saída vazia é o esperado.
+Passa quando imprime `PASS: N modelos conformes` e sai com 0. Linhas `AVISA` são
+esperadas para exceção documentada; qualquer `BLOQUEIA` reprova.
 
-Sem `strict`, pydantic coage `0.56` para `"0.56"` em silêncio — exatamente o bug que o
-invariante I1 existe para impedir. Sem `extra="forbid"`, campo desconhecido é aceito
-calado, que é como um dialeto entra pela porta dos fundos.
+**Por que script e não grep.** Duas tentativas anteriores falharam de formas instrutivas.
+`grep -L 'strict=True'` não serve: ele lista arquivos que não contêm a string em lugar
+algum, então um arquivo com um modelo correto e um errado passa limpo. Comparar contagens
+de `ConfigDict(` contra `strict=True` também não serve — deu falso positivo na primeira
+execução real, porque o docstring do módulo mencionava os dois flags e inflava a contagem.
+Introspecção lê a configuração **efetiva** da classe, incluindo o que veio por herança, e é
+imune a comentário e docstring.
+
+O script também verifica duas coisas que nenhum grep alcança: campo tipado como `float`
+em qualquer contrato, e `strict=False` por campo sem entrada correspondente em
+`docs/DECISOES.md` — a exceção ao invariante I5 precisa ser decidida, nunca herdada.
+
+Sem `strict`, pydantic coage `0.56` para `"0.56"` em silêncio. Sem `extra="forbid"`, campo
+desconhecido é aceito calado, que é como um dialeto entra pela porta dos fundos.
 
 ### 5. Escrita fora do caminho autorizado (I4)
 

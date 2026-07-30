@@ -1,6 +1,6 @@
 # Estado do projeto — handoff
 
-**Atualizado:** 2026-07-30
+**Atualizado:** 2026-07-30 (segunda revisão)
 **Para quem retoma:** leia este arquivo, depois `docs/DECISOES.md`, depois o plano do marco
 em que estamos. Os três juntos bastam; não é necessário reler o plano mestre original.
 
@@ -8,18 +8,25 @@ em que estamos. Os três juntos bastam; não é necessário reler o plano mestre
 
 ## 1. Situação em uma frase
 
-O M0 está na Task 3 de 7. Existe o núcleo criptográfico (forma canônica + hash) e os
-contratos congelados, com 24 testes passando. **Falta a cadeia de hash, os documentos de
-pré-registro e o commit gênese carimbado** — ou seja, o repositório ainda não é público e a
-prova de anterioridade ainda não existe.
+**O M0 está completo do lado do código: Tasks 1 a 6 de 7 feitas, 42 testes passando.**
+Existem o núcleo criptográfico, os contratos congelados, a cadeia de hash com verificador
+independente, e todos os documentos de pré-registro (manifesto, FILL_SPEC datado, políticas
+congeladas, AGENTS.md).
+
+**Falta apenas a Task 7 — e ela está deliberadamente parada aguardando decisão do Wilson**,
+porque é o passo que torna tudo público e irreversível. Ver seção 3.
 
 ---
 
 ## 2. O que existe
 
-### Commits (4, todos em `main` local)
+### Commits (7, todos em `main` local, sem remoto)
 
 ```
+a4687d3  docs: manifesto de pre-registro, FILL_SPEC datado, politicas e AGENTS.md
+0610f71  feat: verificador independente da cadeia via CLI
+2ecd57d  feat: cadeia de hash append-only com verificacao de integridade
+e13bfe9  docs: handoff completo de estado para troca de modelo
 8b0d944  feat: gate de conformidade de contratos por introspeccao
 93b0fba  feat: contratos congelados v1.0.0 com rejeicao estrita
 bc1baf2  feat: forma canonica de serializacao e sha256, com float proibido
@@ -32,13 +39,20 @@ e066172  chore: bootstrap do toolchain e skills do projeto
 |---|---:|---|
 | `arena/canonical.py` | 51 | `canonical_bytes`, `sha256_hex`, `assert_no_floats`, `GENESIS_PREV_HASH`. **Normativo** — quando o JS divergir, corrija o JS. |
 | `arena/contracts/records.py` | 122 | 7 modelos: `_Record`, `Constituent`, `UniverseSnapshot`, `QualityFlag`, `DataQualityReport`, `OutageRecord`, `ForecastRecord`. `Persona` StrEnum. `SCHEMA_VERSION = "1.0.0"`. |
+| `arena/audit/chain.py` | 112 | Cadeia append-only. `file_sha256` é dos bytes em disco; `entry_hash` exclui a própria chave. |
 | `scripts/check_contracts.py` | 118 | Gate de conformidade por introspecção. Exit 0/1. |
+| `scripts/verify_chain.py` | 47 | Verificador independente. Exit 0/1. Cadeia inexistente não é erro. |
 
-Pacotes vazios criados e prontos: `arena/{audit,storage,ingest,quality,forecast}/`.
+Documentos de pré-registro prontos: `MANIFESTO.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`
+(stub), `CODEOWNERS`, `docs/FILL_SPEC.md`, `policy/personas.yaml`,
+`policy/forecast_rule.yaml`.
 
-### Testes (24, todos passando)
+Pacotes vazios prontos: `arena/{storage,ingest,quality,forecast}/`.
 
-`tests/test_canonical.py` (7), `tests/test_contracts.py` (12), `tests/test_check_contracts.py` (5).
+### Testes (42, todos passando)
+
+`test_canonical.py` (7), `test_contracts.py` (12), `test_check_contracts.py` (5),
+`test_chain.py` (13), `test_verify_script.py` (5).
 
 **Atenção com `test_check_contracts.py`:** três testes **modificam** `arena/contracts/records.py`
 e restauram em `finally`. Se uma execução for interrompida (Ctrl-C, crash), rode
@@ -59,56 +73,85 @@ e restauram em `finally`. Se uma execução for interrompida (Ctrl-C, crash), ro
 
 ---
 
-## 3. O que falta — M0 (Tasks 4 a 7)
+## 3. O que falta — M0: só a Task 7, e ela está PARADA por decisão
 
-### Task 4 — Cadeia de hash `arena/audit/chain.py` (PRÓXIMA)
+Tasks 4, 5 e 6 concluídas. Detalhes do que foi feito e por quê estão nas mensagens de commit
+`2ecd57d`, `0610f71` e `a4687d3`.
 
-Código completo no plano de M0. Produz `file_sha256`, `build_entry`, `append_entry`,
-`read_chain`, `last_hash`, `verify_chain`. Teste em `tests/test_chain.py` com 6 casos.
+### Task 7 — Commit gênese, carimbo externo e publicação
 
-**O teste mais importante do repositório é `test_editar_arquivo_antigo_quebra_a_cadeia`.**
-Se ele passar por acidente — por exemplo porque `verify_chain` sempre devolve erro — a
-cadeia não protege nada. Valide invertendo: comente a reescrita do arquivo e confirme que a
-lista de erros volta **vazia**.
+**Não executar sem o Wilson dizer para prosseguir.** Três motivos, e nenhum é técnico:
 
-Detalhe de desenho: `file_sha256` hasheia os **bytes em disco**, não a forma canônica.
-`entry_hash` é `sha256_hex` do dict **sem** a chave `entry_hash`.
+1. **Publicar o repositório é irreversível na prática.** Conteúdo público é indexado e
+   copiado; despublicar depois não desfaz. É a categoria de ação que exige confirmação
+   explícita, mesmo com a D3 já tendo decidido que o repositório é público desde o dia 1.
 
-### Task 5 — `scripts/verify_chain.py`
+2. **O `MANIFESTO.md` é um compromisso público com implicação regulatória**, e a D13
+   (consulta a advogado de mercado de capitais) está pendente. Ele declara metodologia,
+   métrica e critério de fracasso — coisas que, uma vez carimbadas, não devem ser editadas.
+   O Wilson precisa lê-lo antes.
 
-CLI independente. Exit 0 + `PASS: N entradas` quando íntegra; exit 1 + lista de erros quando
-não. Teste com 2 casos via `subprocess`.
+3. **O carimbo do OpenTimestamps inicia o relógio da anterioridade.** Refazer o gênese depois
+   de carimbar é exatamente a reescrita de história que o projeto proíbe. Antes de qualquer
+   publicação não há dano, mas depois há — então a ordem correta é: Wilson lê, aprova, e só
+   então carimba.
 
-### Task 6 — Documentos de pré-registro
+**Sequência quando autorizado:**
 
-Cria `MANIFESTO.md`, `README.md`, `AGENTS.md`, `CLAUDE.md` (stub de uma linha),
-`CODEOWNERS`, `docs/FILL_SPEC.md`, `policy/personas.yaml`, `policy/forecast_rule.yaml`.
-Conteúdo integral no plano.
+```bash
+# 1. instalar o cliente (NAO esta instalado)
+uv tool install opentimestamps-client && ots --version
 
-**`docs/DECISOES.md` JÁ EXISTE — não recriar.** O plano foi corrigido para mandar apenas
-conferir que há 19 entradas.
+# 2. entrada genesis — prev_hash deve sair com 64 zeros
+uv run python - <<'EOF'
+from datetime import datetime, timezone
+from pathlib import Path
+from arena.audit.chain import append_entry, build_entry, last_hash
 
-Três acréscimos ao `MANIFESTO.md` já previstos nos planos, todos por **acréscimo** e nunca
-editando o que já está lá: a limitação de que `p_up` é idêntico entre as três personas na
-regra `momentum-1.0.0` (Task 15), e as regras de resolução (Task 16).
+root = Path(".").resolve()
+chain = root / "chain" / "CHAIN.jsonl"
+alvos = [root / "MANIFESTO.md", root / "docs" / "FILL_SPEC.md",
+         root / "policy" / "personas.yaml", root / "policy" / "forecast_rule.yaml",
+         root / "AGENTS.md"]
+faltando = [str(x) for x in alvos if not x.exists()]
+assert not faltando, f"ausentes: {faltando}"
+agora = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+e = build_entry("genesis", agora, alvos, last_hash(chain), root)
+append_entry(chain, e)
+print("entry_hash:", e["entry_hash"]); print("prev_hash :", e["prev_hash"])
+EOF
 
-### Task 7 — Commit gênese, carimbo e proteção do histórico
+# 3. verificar ANTES de carimbar — carimbar cadeia quebrada carimba o defeito
+uv run python scripts/verify_chain.py     # espera: PASS: 1 entradas
 
-1. `uv tool install opentimestamps-client` e conferir `ots --version`. **Não está instalado
-   ainda.** Se falhar por `uv` e por `pipx`, PARE e registre o bloqueio: sem carimbo externo
-   a data de anterioridade é apenas a palavra do Wilson.
-2. Entrada gênese cobrindo `MANIFESTO.md`, `docs/FILL_SPEC.md`, `policy/*.yaml`, `AGENTS.md`.
-   `prev_hash` deve ser 64 zeros.
-3. `verify_chain` **antes** de carimbar. Carimbar cadeia quebrada carimba o defeito.
-4. `ots stamp chain/CHAIN.jsonl`, commitar o `.ots` ao lado.
-5. `gh repo create ai-market-arena --public --source=. --remote=origin --push`
-6. Branch protection com `enforce_admins: true`, `allow_force_pushes: false`,
-   `required_linear_history: true`. Confirmar por `gh api`.
-7. Commits assinados por SSH (`gpg.format ssh`), chave registrada em `user/ssh_signing_keys`.
+# 4. carimbar e commitar
+ots stamp chain/CHAIN.jsonl
+git add chain/ && git commit -m "feat: entrada genesis da cadeia, carimbada no OpenTimestamps"
 
-**Nada disso foi feito. O repositório é local, sem remoto, sem proteção, sem assinatura.**
+# 5. publicar
+gh repo create ai-market-arena --public --source=. --remote=origin --push
 
----
+# 6. proteger o historico (enforce_admins e o ponto: sem ele a prova vale zero)
+gh api -X PUT repos/wilsonnettoo/ai-market-arena/branches/main/protection --input - <<'EOF'
+{"required_status_checks":null,"enforce_admins":true,"required_pull_request_reviews":null,
+ "restrictions":null,"allow_force_pushes":false,"allow_deletions":false,
+ "required_linear_history":true}
+EOF
+gh api repos/wilsonnettoo/ai-market-arena/branches/main/protection \
+  --jq '{force:.allow_force_pushes.enabled,admins:.enforce_admins.enabled,linear:.required_linear_history.enabled}'
+# espera: {"force":false,"admins":true,"linear":true}
+
+# 7. assinatura de commits por SSH
+git config --local commit.gpgsign true
+git config --local gpg.format ssh
+git config --local user.signingkey ~/.ssh/id_ed25519.pub
+gh api -X POST user/ssh_signing_keys -f title="arena" -f key="$(cat ~/.ssh/id_ed25519.pub)"
+```
+
+Usuário do GitHub confirmado: **`wilsonnettoo`**.
+
+Alguns dias depois do carimbo, rodar `ots upgrade chain/CHAIN.jsonl.ots` e commitar — a
+atestação nasce pendente de agregação, e `ots verify` só confirma o bloco depois disso.
 
 ## 4. O que falta — M1 (Tasks 8 e 9)
 

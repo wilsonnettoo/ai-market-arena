@@ -8,3 +8,4 @@ __pycache__/
 _site/
 data/raw/**/*.gz
 !data/raw/.gitkeep
+.ots.bak
